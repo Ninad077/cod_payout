@@ -1,0 +1,56 @@
+# =====================================================================
+# Fynd COD payout bundle  (Databricks Asset Bundle)
+#
+# One recipe file for one money flow:
+#   cod_brand_payout - every morning, pay brands for delivered COD bags
+#
+# Written for Databricks Free Edition (serverless only), so no cluster
+# blocks appear anywhere: every task runs on serverless compute.
+#
+# Compared with the older syntax in the video:
+#   bundle.yml            -> databricks.yml
+#   environments:         -> targets:
+#   ${bundle.environment} -> ${bundle.target}
+#   new_cluster: {...}    -> (left out, serverless)
+#
+# Which workspace? No host is written here on purpose. The CLI uses your
+# login (`databricks auth login`) on your laptop, and the DATABRICKS_HOST /
+# DATABRICKS_TOKEN secrets in GitHub Actions.
+# =====================================================================
+
+bundle:
+  name: fynd_cod_payout
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Unity Catalog catalog to write into (Free Edition ships with "workspace").
+    default: workspace
+  schema:
+    description: Schema that holds every table for this target.
+    default: finops_dev
+
+targets:
+  # Your sandbox. Development mode prefixes the job and schema with your
+  # name and pauses the schedule, so nothing runs until you press Run.
+  dev:
+    mode: development
+    default: true
+    variables:
+      schema: finops_dev
+
+  # The live setup. The 07:00 schedule is active here.
+  # On Free Edition this is the same workspace, kept apart by schema.
+  # At Fynd you would add `workspace: host:` for the GCP production
+  # workspace and run as a service principal instead of your user.
+  prod:
+    mode: production
+    workspace:
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      schema: finops_prod
+    permissions:
+      - user_name: ${workspace.current_user.userName}
+        level: CAN_MANAGE

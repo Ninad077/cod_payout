@@ -1,0 +1,20 @@
+# One-off: fill the schema with synthetic Fynd-like bags so the payout
+# job has something to work on. Run it by hand once per target.
+# At Fynd you would not need this: the job reads the real BigQuery view.
+
+resources:
+  jobs:
+    setup_sample_data:
+      name: Setup - load sample bags
+      description: Creates 240 synthetic bags (and resets the ledger) so the COD payout job can be demonstrated.
+
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.finops.name}
+
+      tasks:
+        - task_key: load_sample_bags
+          notebook_task:
+            notebook_path: ../src/setup/00_load_sample_data.py

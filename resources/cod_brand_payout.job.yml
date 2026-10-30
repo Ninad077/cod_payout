@@ -1,0 +1,51 @@
+# COD brand payout: pay brands for delivered COD bags.
+# Runs every morning at 07:00 IST. Each task starts only after the one
+# before it succeeds; if any task fails, the job stops and emails you.
+
+resources:
+  jobs:
+    cod_brand_payout:
+      name: COD brand payout
+      description: Pick delivered COD bags, work out each brand's payout, write the payout file and ledger, refresh the bag journey table.
+
+      schedule:
+        quartz_cron_expression: "0 0 7 * * ?"   # 07:00 every day
+        timezone_id: Asia/Kolkata
+        pause_status: UNPAUSED                  # dev mode pauses it automatically
+
+      email_notifications:
+        on_failure:
+          - ${workspace.current_user.userName}
+
+      max_concurrent_runs: 1                    # never two payout runs at once
+
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.finops.name}
+        - name: run_date
+          default: "{{job.start_time.iso_date}}"  # today, filled in by Databricks
+
+      tasks:
+        - task_key: pick_delivered_bags
+          notebook_task:
+            notebook_path: ../src/cod_payout/01_pick_delivered_bags.py
+
+        - task_key: compute_brand_payable
+          depends_on:
+            - task_key: pick_delivered_bags
+          notebook_task:
+            notebook_path: ../src/cod_payout/02_compute_brand_payable.py
+
+        - task_key: write_payout_file_and_ledger
+          depends_on:
+            - task_key: compute_brand_payable
+          notebook_task:
+            notebook_path: ../src/cod_payout/03_write_payout_file_and_ledger.py
+
+        - task_key: refresh_bag_journey
+          depends_on:
+            - task_key: write_payout_file_and_ledger
+          notebook_task:
+            notebook_path: ../src/cod_payout/04_refresh_bag_journey.py

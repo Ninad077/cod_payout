@@ -1,0 +1,21 @@
+# Where the data lives. The bundle creates these, so a fresh workspace
+# needs nothing set up by hand.
+#
+# Jobs refer to the schema as ${resources.schemas.finops.name} rather than
+# typing the name, because development mode prefixes it with your user name.
+
+resources:
+  schemas:
+    finops:
+      catalog_name: ${var.catalog}
+      name: ${var.schema}
+      comment: Fynd COD payout tables (bags, payable, ledger, bag journey) for target ${bundle.target}
+
+  volumes:
+    # Where the job writes the daily brand payout Excel file.
+    payout_files:
+      catalog_name: ${var.catalog}
+      schema_name: ${resources.schemas.finops.name}
+      name: payout_files
+      volume_type: MANAGED
+      comment: Daily brand payout Excel files

@@ -1,0 +1,48 @@
+# Ships the bundle from GitHub.
+#
+#   Pull request  -> validate the bundle and deploy it to dev
+#   Merge to main -> deploy it to prod (schedule goes live)
+#
+# Needs two repository secrets (Settings > Secrets and variables > Actions):
+#   DATABRICKS_HOST   e.g. https://dbc-xxxxxxxx-xxxx.cloud.databricks.com
+#   DATABRICKS_TOKEN  a personal access token from User settings > Developer
+
+name: Deploy bundle
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: bundle-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+  DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+
+jobs:
+  dev:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: databricks/setup-cli@main
+      - name: Validate
+        run: databricks bundle validate -t dev
+      - name: Deploy to dev
+        run: databricks bundle deploy -t dev
+
+  prod:
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: databricks/setup-cli@main
+      - name: Validate
+        run: databricks bundle validate -t prod
+      - name: Deploy to prod
+        run: databricks bundle deploy -t prod
