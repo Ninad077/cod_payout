@@ -1,5 +1,6 @@
 # Fynd COD payout bundle  (Databricks Asset Bundle)
 
+
 bundle:
   name: fynd_cod_payout
 
@@ -13,6 +14,9 @@ variables:
   schema:
     description: Schema that holds every table for this target.
     default: finops_dev
+  bq_dataset:
+    description: BigQuery dataset to publish to. Empty means skip.
+    default: ""
 
 targets:
   # Your sandbox. Development mode prefixes the job and schema with your
@@ -24,9 +28,8 @@ targets:
       schema: finops_dev
 
   # The live setup. The 07:00 schedule is active here.
-  # On Free Edition this is the same workspace, kept apart by schema.
-  # At Fynd you would add `workspace: host:` for the GCP production
-  # workspace and run as a service principal instead of your user.
+  # At Fynd you would add `workspace: host:` for the GCP workspace and
+  # set bq_dataset to e.g. fynd-db.finops_dab.
   prod:
     mode: production
     workspace:

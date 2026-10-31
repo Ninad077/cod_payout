@@ -6,7 +6,7 @@ resources:
   jobs:
     cod_brand_payout:
       name: COD brand payout
-      description: Pick delivered COD bags, work out each brand's payout, write the payout file and ledger, refresh the bag journey table.
+      description: Pick delivered COD bags, work out each brand's payout, write the payout file and ledger, refresh the bag journey table, publish to BigQuery.
 
       schedule:
         quartz_cron_expression: "0 0 7 * * ?"   # 07:00 every day
@@ -25,7 +25,9 @@ resources:
         - name: schema
           default: ${resources.schemas.finops.name}
         - name: run_date
-          default: "{{job.start_time.iso_date}}"  # today, filled in by Databricks
+          default: "{{job.start_time.iso_date}}"
+        - name: bq_dataset
+          default: ${var.bq_dataset}
 
       tasks:
         - task_key: pick_delivered_bags
@@ -49,3 +51,9 @@ resources:
             - task_key: write_payout_file_and_ledger
           notebook_task:
             notebook_path: ../src/cod_payout/04_refresh_bag_journey.py
+
+        - task_key: publish_to_bigquery
+          depends_on:
+            - task_key: refresh_bag_journey
+          notebook_task:
+            notebook_path: ../src/cod_payout/05_publish_to_bigquery.py
